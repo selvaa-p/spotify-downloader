@@ -10,6 +10,7 @@ Pillow>=9.0.0
 pycryptodome>=3.15.0
 
 # Note: FFmpeg is required for audio conversion
-# Windows: Download from https://ffmpeg.org/download.html
+# Windows: 
+# Download from https://ffmpeg.org/download.html OR  use command: choco install ffmpeg
 # Linux: sudo apt install ffmpeg
 # Mac: brew install ffmpeg
