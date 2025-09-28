@@ -1,0 +1,14 @@
+# Spotify API Credentials
+# Get these from https://developer.spotify.com/dashboard/
+SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
+
+# Download Settings
+DOWNLOAD_FOLDER=./downloads
+AUDIO_FORMAT=flac
+AUDIO_QUALITY=best
+AUDIO_SOURCE=youtube
+
+# Audio Source Options:
+# youtube - Download from YouTube (default, most reliable)
+# youtube_music - Download from YouTube Music (better music-focused results)

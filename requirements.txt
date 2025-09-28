@@ -1,0 +1,15 @@
+# Core dependencies
+spotipy>=2.22.0
+yt-dlp>=2024.1.0
+mutagen>=1.45.1
+requests>=2.28.0
+python-dotenv>=0.19.0
+colorama>=0.4.4
+tqdm>=4.64.0
+Pillow>=9.0.0
+pycryptodome>=3.15.0
+
+# Note: FFmpeg is required for audio conversion
+# Windows: Download from https://ffmpeg.org/download.html
+# Linux: sudo apt install ffmpeg
+# Mac: brew install ffmpeg

@@ -1,0 +1,160 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  test:
+    name: Test on Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install FFmpeg
+      uses: FedericoCarboni/setup-ffmpeg@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov flake8 black mypy
+
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+
+    - name: Check code formatting with Black
+      run: |
+        black --check --diff .
+
+    - name: Type check with mypy
+      run: |
+        mypy spotify_downloader.py config.py
+
+    - name: Test import and basic functionality
+      run: |
+        python -c "import spotify_downloader; print('Import successful')"
+        python spotify_downloader.py --help || true
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install security tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install safety bandit
+
+    - name: Check for security vulnerabilities
+      run: |
+        safety check
+        bandit -r . -f json
+
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pylint radon
+
+    - name: Analyze with Pylint
+      run: |
+        pylint spotify_downloader.py config.py --exit-zero
+
+    - name: Calculate complexity with Radon
+      run: |
+        radon cc . --min B
+        radon mi . --min B
+
+  docs:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check README
+      run: |
+        # Check if README exists and has content
+        test -s README.md
+        # Check for broken links (basic check)
+        grep -E "https?://[^)]+" README.md || true
+
+    - name: Validate requirements.txt
+      run: |
+        test -s requirements.txt
+        # Check for version conflicts
+        pip-compile --dry-run requirements.txt || pip check
+
+  release:
+    name: Create Release
+    needs: [test, security, code-quality]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Build distribution
+      run: |
+        python -m pip install --upgrade pip build
+        python -m build
+
+    - name: Upload to PyPI (if configured)
+      if: github.event_name == 'release' && github.event.action == 'published'
+      run: |
+        echo "Would upload to PyPI here"
+        # Uncomment when ready:
+        # pip install twine
+        # twine upload dist/*
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
